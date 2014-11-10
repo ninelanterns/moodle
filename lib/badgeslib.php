@@ -398,7 +398,7 @@ class badge {
         $result = $DB->insert_record('badge_issued', $issued, true);
 
         if ($result) {
-            // Trigger badge awarded event
+            // Trigger badge awarded event.
             $context = context_system::instance();
             $event = \core\event\badge_awarded::create(array('context' => $context, 'objectid' => $result,
                 'courseid' => $this->courseid ? $this->courseid : 0, 'relateduserid' => $userid));
