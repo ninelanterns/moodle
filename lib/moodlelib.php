@@ -1236,7 +1236,7 @@ function fix_utf8($value) {
         // Note: this duplicates min_fix_utf8() intentionally.
         static $buggyiconv = null;
         if ($buggyiconv === null) {
-            $buggyiconv = (!function_exists('iconv') or @iconv('UTF-8', 'UTF-8//IGNORE', '100'.chr(130).'€') !== '100€');
+            $buggyiconv = (!function_exists('iconv') or @iconv('UTF-8', 'UTF-8//IGNORE', '100'.chr(130).'â‚¬') !== '100â‚¬');
         }
 
         if ($buggyiconv) {
@@ -3648,7 +3648,7 @@ function fullname($user, $override=false) {
     // This regular expression replacement is to fix problems such as 'James () Kirk' Where 'Tiberius' (middlename) has not been
     // filled in by a user.
     // The special characters are Japanese brackets that are common enough to make allowances for them (not covered by :punct:).
-    $patterns[] = '/[[:punct:]「」]*EMPTY[[:punct:]「」]*/u';
+    $patterns[] = '/[[:punct:]ã€Œã€�]*EMPTY[[:punct:]ã€Œã€�]*/u';
     // This regular expression is to remove any double spaces in the display name.
     $patterns[] = '/\s{2,}/u';
     foreach ($patterns as $pattern) {
@@ -5840,6 +5840,36 @@ function email_to_user($user, $from, $subject, $messagetext, $messagehtml = '', 
     $tempreplyto = array();
 
     $supportuser = core_user::get_support_user();
+//--------------------------------------------------------------------------------------------------------------------------------------------
+//------------------------------------------- BEGIN CORE HACK --------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------------------------------------------------
+    // direct all reply to emails to the "From" user when SMTP is configured
+    if (empty($CFG->handlebounces) && empty($replyto) && !empty($CFG->smtphosts) && !empty($CFG->smtpuser) && !empty($CFG->scaffoldemail)) {
+        $replyto = $from->email;
+        $replytoname = fullname($from);
+
+        $supportuser->email = $CFG->scaffoldemail;
+
+        // most of secured SMTP server do not allow to send email in another name
+        // from may be the $USER object and cached between sessions. Therefore, clone a new from instead
+        if (is_string($from)) {
+            $replytoname = $from;
+            $from = (object) array('email' => $CFG->scaffoldemail, 'firstname' => $from, 'lastname' => "($CFG->shortname)");
+        } else {    // from is an object
+            $from = (object) array('email' => $CFG->scaffoldemail, 'firstname' => $from->firstname,
+                    'lastname' => $from->lastname." ($CFG->shortname)",
+                    'maildisplay' => $from->maildisplay);
+            if (!$usetrueaddress || !$from->maildisplay) {  // don't display the reply to email
+                $replyto = $CFG->noreplyaddress;
+                $replytoname = fullname($from);
+                $from->maildisplay = 1;
+            }
+        }
+        $usetrueaddress = true;
+    }
+//--------------------------------------------------------------------------------------------------------------------------------------------
+//------------------------------------------- END CORE HACK ----------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------------------------------------------------
 
     // Make up an email address for handling bounces.
     if (!empty($CFG->handlebounces)) {
@@ -7765,7 +7795,7 @@ function count_words($string) {
     // Replace underscores (which are classed as word characters) with spaces.
     $string = preg_replace('/_/u', ' ', $string);
     // Remove any characters that shouldn't be treated as word boundaries.
-    $string = preg_replace('/[\'’-]/u', '', $string);
+    $string = preg_replace('/[\'â€™-]/u', '', $string);
     // Remove dots and commas from within numbers only.
     $string = preg_replace('/([0-9])[.,]([0-9])/u', '$1$2', $string);
 
