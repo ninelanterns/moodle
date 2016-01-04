@@ -5815,7 +5815,9 @@ function send_confirmation_email($user) {
     $supportuser = core_user::get_support_user();
 
     $data = new stdClass();
-    $data->firstname = fullname($user);
+    $data->fullname = fullname($user);
+    $data->firstname = $user->firstname;
+    $data->lastname = $user->lastname;
     $data->sitename  = format_string($site->fullname);
     $data->admin     = generate_email_signoff();
 
